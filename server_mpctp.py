@@ -1,8 +1,10 @@
 import argparse
 import socket
+import cv2
+import utils
 
 def startServer(host,port):
-    s = socket.socket()             # Create a socket object
+    s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)             # Create a socket object
     s.bind((host, port))            # Bind to the port
     s.listen(5)                     # Now wait for client connection.
     
@@ -10,18 +12,27 @@ def startServer(host,port):
     
     conn, addr = s.accept()     # Establish connection with client.
     print('Got connection from', addr)
-    filename='sample_file.txt'
     
-    f = open(filename,'rb')
-    l = f.read(1024)
+    cap  = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        conn.close()
+        raise IOError("Cannot open webcam")
 
-    while (l):
-        conn.send(l)
-        print('Sent ',repr(l))
-        l = f.read(1024)
-    f.close()
-
-    print('Done sending')
+    count = 0
+    while (True):
+        ret, frame = cap.read()
+        frame = cv2.resize(frame, None, fx=  0.5, fy = 0.5, interpolation = cv2.INTER_AREA)
+        cv2.imshow('Input', frame)
+        count = count + 1
+        if count>500:
+            break
+        print('Frame count ', count, ' rows ', len(frame), ' cols ', len(frame[0]))
+        # print('sent size', str(3*len(frame)*len(frame[0])))
+        conn.sendall(utils.encodeNumPyArray(frame))
+        print('Sent ', count)
+    cap.release()
+    cv2.destroyAllWindows()
+    print('Ending video streaming')
     conn.close()
 
 if __name__ == '__main__':
