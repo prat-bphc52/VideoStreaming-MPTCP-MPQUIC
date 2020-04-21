@@ -49,10 +49,11 @@ def startClient(host, port):
                         cols2= data[data_pos]
                         data_pos = data_pos+1
                         cols = (cols1 << 8) + cols2
-                        frame = np.zeros((rows, cols, 3))
+                        frame = np.zeros((rows, cols, 3), np.uint8)
                         if data_pos>=len(data):
                             raise DataExceededError
-                frame[pos_i][pos_j][pos_k] =  data[data_pos]
+                frame[pos_i][pos_j][pos_k] = data[data_pos]
+                data_pos = data_pos + 1
                 pos_k = pos_k+1
                 if pos_k==3:
                     pos_k = 0
@@ -64,7 +65,8 @@ def startClient(host, port):
                             pos_i = 0
                             frameOld = frame
                             count = count + 1
-                            print('Frame ', count)
+                            print('type ',type(frame[0][0][0]))
+                            print('Received Frame ', count)
                             frame = None
                             rows1 = -1
                             rows2 = -1
@@ -73,7 +75,7 @@ def startClient(host, port):
                             rows = 0
                             cols = 0
                             cv2.imshow('Output', frameOld)
-                data_pos = data_pos + 1
+                            cv2.waitKey(25)
         except DataExceededError:
             pass
     cv2.destroyAllWindows()

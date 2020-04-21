@@ -22,12 +22,10 @@ def startServer(host,port):
     while (True):
         ret, frame = cap.read()
         frame = cv2.resize(frame, None, fx=  0.5, fy = 0.5, interpolation = cv2.INTER_AREA)
-        cv2.imshow('Input', frame)
         count = count + 1
         if count>500:
             break
-        print('Frame count ', count, ' rows ', len(frame), ' cols ', len(frame[0]))
-        # print('sent size', str(3*len(frame)*len(frame[0])))
+        print(type(frame[0][0][0]))
         conn.sendall(utils.encodeNumPyArray(frame))
         print('Sent ', count)
     cap.release()
