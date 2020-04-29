@@ -5,7 +5,7 @@ import utils
 
 def startServer(host,port):
     s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)             # Create a socket object
-    s.bind((host, port))            # Bind to the port
+    s.bind(('0::0', port)) # Bind to the port
     s.listen(5)                     # Now wait for client connection.
     
     print('Server listening....')
@@ -25,7 +25,6 @@ def startServer(host,port):
         count = count + 1
         if count>500:
             break
-        print(type(frame[0][0][0]))
         conn.sendall(utils.encodeNumPyArray(frame))
         print('Sent ', count)
     cap.release()

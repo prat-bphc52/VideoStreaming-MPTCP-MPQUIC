@@ -65,7 +65,6 @@ def startClient(host, port):
                             pos_i = 0
                             frameOld = frame
                             count = count + 1
-                            print('type ',type(frame[0][0][0]))
                             print('Received Frame ', count)
                             frame = None
                             rows1 = -1
@@ -75,7 +74,7 @@ def startClient(host, port):
                             rows = 0
                             cols = 0
                             cv2.imshow('Output', frameOld)
-                            cv2.waitKey(25)
+                            cv2.waitKey(30)
         except DataExceededError:
             pass
     cv2.destroyAllWindows()
