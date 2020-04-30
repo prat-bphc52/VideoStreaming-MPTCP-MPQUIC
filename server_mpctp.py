@@ -2,11 +2,13 @@ import argparse
 import socket
 import cv2
 import utils
+from datetime import datetime
 
 def startServer(host,port):
     s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)             # Create a socket object
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind(('0::0', port)) # Bind to the port
-    s.listen(5)                     # Now wait for client connection.
+    s.listen()                     # Now wait for client connection.
     
     print('Server listening....')
     
@@ -18,18 +20,21 @@ def startServer(host,port):
         conn.close()
         raise IOError("Cannot open webcam")
 
+    starttime = datetime.now()
+    print('Starting Video Streaming at ', starttime)
     count = 0
     while (True):
         ret, frame = cap.read()
         frame = cv2.resize(frame, None, fx=  0.5, fy = 0.5, interpolation = cv2.INTER_AREA)
-        count = count + 1
-        if count>500:
-            break
         conn.sendall(utils.encodeNumPyArray(frame))
-        print('Sent ', count)
+        count = count + 1
+        if count==300:
+            break
     cap.release()
     cv2.destroyAllWindows()
-    print('Ending video streaming')
+    endtime = datetime.now()
+    print('Ending video streaming at ', endtime)
+    print('Frames Sent ', count)
     conn.close()
 
 if __name__ == '__main__':
