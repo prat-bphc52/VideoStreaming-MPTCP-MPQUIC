@@ -1,27 +1,40 @@
 import argparse
 import socket
+import cv2
+import utils
+from datetime import datetime
 
 def startServer(host,port):
-    s = socket.socket()             # Create a socket object
-    s.bind((host, port))            # Bind to the port
-    s.listen(5)                     # Now wait for client connection.
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)             # Create a socket object
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(('0.0.0.0', port)) # Bind to the port
+    s.listen()                     # Now wait for client connection.
     
     print('Server listening....')
     
     conn, addr = s.accept()     # Establish connection with client.
     print('Got connection from', addr)
-    filename='sample_file.txt'
     
-    f = open(filename,'rb')
-    l = f.read(1024)
+    cap  = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        conn.close()
+        raise IOError("Cannot open webcam")
 
-    while (l):
-        conn.send(l)
-        print('Sent ',repr(l))
-        l = f.read(1024)
-    f.close()
-
-    print('Done sending')
+    starttime = datetime.now()
+    print('Starting Video Streaming at ', starttime)
+    count = 0
+    while (True):
+        ret, frame = cap.read()
+        frame = cv2.resize(frame, None, fx=  0.5, fy = 0.5, interpolation = cv2.INTER_AREA)
+        conn.sendall(utils.encodeNumPyArray(frame))
+        count = count + 1
+        if count==300:
+            break
+    cap.release()
+    cv2.destroyAllWindows()
+    endtime = datetime.now()
+    print('Ending video streaming at ', endtime)
+    print('Frames Sent ', count)
     conn.close()
 
 if __name__ == '__main__':
