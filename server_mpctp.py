@@ -5,9 +5,9 @@ import utils
 from datetime import datetime
 
 def startServer(host,port):
-    s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)             # Create a socket object
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)             # Create a socket object
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind(('0::0', port)) # Bind to the port
+    s.bind(('0.0.0.0', port)) # Bind to the port
     s.listen()                     # Now wait for client connection.
     
     print('Server listening....')

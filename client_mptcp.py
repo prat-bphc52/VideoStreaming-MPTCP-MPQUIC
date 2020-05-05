@@ -11,8 +11,7 @@ class DataExceededError(Exception):
     pass
 
 def startClient(host, port):
-    s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-    # s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((host, port))
 
     starttime = datetime.now()
