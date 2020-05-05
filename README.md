@@ -15,6 +15,9 @@ For Linux based OS, please refer to the following [link](https://multipath-tcp.o
 python3 -m pip install numpy, opencv-python
 ```
 
+### MP-QUIC
+- GO Language
+
 ## Installation
 - Clone this repository in your preferred directory
 
@@ -24,6 +27,7 @@ git clone https://github.com/prat-bphc52/VideoStreaming-MPTCP-MPQUIC
 - Or you can also download the source code as a zip file
 
 ## Execution
+### MP-TCP
 Start the server on the Video Streaming Source Host
 
 ```
@@ -34,9 +38,10 @@ Start the client on the target machine
 ```
 python3 client_mptcp.py <source_machine_IPv4_Addres> -p <port_number>
 ```
+### MP-QUIC
 
 ## Team Members
-- [Prateek Agarwal](https://github.com/prat-bphc52/ "Prateek Agarwal") 2017A7PS0075H
+- [Prateek Agarwal](https://github.com/prat-bphc52/ "Prateek Agarwal") - 2017A7PS0075H
 - [Naman Arora](https://github.com/namanarora00/ "Naman Arora") - 2017A7PS0175H
 - [Utkarsh Grover](https://github.com/utkgrover/ "Utkarsh Grover") - 2017A7PS1428H
 - Samar Kansal - 2016AAPS0196H
