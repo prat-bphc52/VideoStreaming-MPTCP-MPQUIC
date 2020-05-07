@@ -3,3 +3,5 @@ __pycache__/
 files_received/
 server-mpquic
 client-mpquic
+test
+test.go

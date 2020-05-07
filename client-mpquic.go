@@ -38,19 +38,25 @@ func main() {
 
 	start := time.Now()
 
+	webcam.Read(&img)
+
+	pl("Rows ", img.Rows(), " Cols ", img.Cols())
+    var dimens = make([]byte, 4)
+	var bs = make([]byte, 2)
+	binary.LittleEndian.PutUint16(bs, uint16(img.Rows()))
+	copy(dimens[0:],bs)
+	binary.LittleEndian.PutUint16(bs, uint16(img.Cols()))
+	copy(dimens[2:],bs)
+	stream.Write(dimens)
+	pl("Sending dimensions ", dimens)
+
+
 	for i:=1;i<=config.MAX_FRAMES;i++{
 		webcam.Read(&img)
-		pl("Sending frame ", i)
-		pl("Rows ", img.Rows(), " Cols ", img.Cols())
+		pl("\n\nSending frame ", i)
 		var b = img.ToBytes()
-		b = append(b, 0,0,0,0)
-		copy(b[4:],b[0:])
-		var bs = make([]byte, 2)
-		binary.LittleEndian.PutUint16(bs, uint16(img.Rows()))
-		copy(b[0:],bs)
-		binary.LittleEndian.PutUint16(bs, uint16(img.Cols()))
-		copy(b[2:],bs)
-		pl("last 10 bytes are ", b[len(b)-10:len(b)])
+		pl("first 10 bytes are ", b[:10])
+		pl("last 10 bytes are ", b[len(b)-10:])
 		for ind:=0;ind<len(b);{
 			var end = ind+config.BUFFERSEND
 			if end>len(b){
