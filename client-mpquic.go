@@ -3,19 +3,18 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"os"
-	"strconv"
 	"time"
+	"encoding/binary"
 
 	utils "./utils"
 	config "./config"
 	quic "github.com/lucas-clemente/quic-go"
+	"gocv.io/x/gocv"
 )
 
 const addr = "127.0.0.1:"+config.PORT
-const threshold = 5 * 1024  // 5KB
-//TODO: set this threshold dynamically, based on network conditions
-
+var pl = fmt.Println
+var p = fmt.Print
 
 func main() {
 
@@ -23,85 +22,53 @@ func main() {
 		CreatePaths: true,
 	}
 
-	fileToSend := "sample.txt"
 
-	fmt.Println("Sending File: ", fileToSend)
-
-
-	file, err := os.Open(fileToSend)
-	utils.HandleError(err)
-
-	fileInfo, err := file.Stat()
-	utils.HandleError(err)
-
-	if fileInfo.Size() <= threshold {
-		quicConfig.CreatePaths = false
-		fmt.Println("File is small, using single path only.")
-	} else {
-		fmt.Println("file is large, using multipath now.")
-	}
-	file.Close()
-
-	fmt.Println("Trying to connect to: ", addr)
+	pl("Trying to connect to: ", addr)
 	sess, err := quic.DialAddr(addr, &tls.Config{InsecureSkipVerify: true}, quicConfig)
 	utils.HandleError(err)
-
-	fmt.Println("session created: ", sess.RemoteAddr())
 
 	stream, err := sess.OpenStream()
 	utils.HandleError(err)
 
-	fmt.Println("stream created...")
-	fmt.Println("Client connected")
-	sendFile(stream, fileToSend)
-	time.Sleep(2 * time.Second)
-
-}
-
-func sendFile(stream quic.Stream, fileToSend string) {
-	fmt.Println("A client has connected!")
+	pl("Connection established with server successfully...Starting Video stream")
 	defer stream.Close()
 
-	file, err := os.Open(fileToSend)
-	utils.HandleError(err)
+	webcam, _ := gocv.VideoCaptureDevice(0)
+	img := gocv.NewMat()
 
-	fileInfo, err := file.Stat()
-	utils.HandleError(err)
-
-	fileSize := utils.FillString(strconv.FormatInt(fileInfo.Size(), 10), 10)
-	fileName := utils.FillString(fileInfo.Name(), 64)
-
-	fmt.Println("Sending filename and filesize!")
-	stream.Write([]byte(fileSize))
-	stream.Write([]byte(fileName))
-
-	sendBuffer := make([]byte, config.BUFFERSIZE)
-	fmt.Println("Start sending file!\n")
-
-	var sentBytes int64
 	start := time.Now()
 
-	for {
-		sentSize, err := file.Read(sendBuffer)
-		if err != nil {
-			break
+	for i:=1;i<=config.MAX_FRAMES;i++{
+		webcam.Read(&img)
+		pl("Sending frame ", i)
+		pl("Rows ", img.Rows(), " Cols ", img.Cols())
+		var b = img.ToBytes()
+		b = append(b, 0,0,0,0)
+		copy(b[4:],b[0:])
+		var bs = make([]byte, 2)
+		binary.LittleEndian.PutUint16(bs, uint16(img.Rows()))
+		copy(b[0:],bs)
+		binary.LittleEndian.PutUint16(bs, uint16(img.Cols()))
+		copy(b[2:],bs)
+		pl("last 10 bytes are ", b[len(b)-10:len(b)])
+		for ind:=0;ind<len(b);{
+			var end = ind+config.BUFFERSEND
+			if end>len(b){
+				end = len(b)
+			}
+			stream.Write(b[ind:end])
+			ind = end
 		}
-
-		stream.Write(sendBuffer)
-		if err != nil {
-			break
-		}
-
-
-		sentBytes += int64(sentSize)
-		fmt.Printf("\033[2K\rSent: %d / %d", sentBytes, fileInfo.Size())
+		
 	}
+	stream.Write([]byte{0,0,0,0})
+	webcam.Close()
+
 	elapsed := time.Since(start)
-	fmt.Println("\nTransfer took: ", elapsed)
+	pl("\nEnding Video Stream, Duration : ", elapsed)
 
 	stream.Close()
 	stream.Close()
 	time.Sleep(2 * time.Second)
-	fmt.Println("\n\nFile has been sent, closing stream!")
-	return
+	pl("\n\nThank you!")
 }

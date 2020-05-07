@@ -2,18 +2,17 @@ package main
 
 import (
 	"fmt"
-	"io"
-	"os"
-	"strconv"
-	"strings"
 	"time"
 
 	utils "./utils"
 	config "./config"
 	quic "github.com/lucas-clemente/quic-go"
+	// "gocv.io/x/gocv"
 )
 
 const addr = "0.0.0.0:" + config.PORT
+var pl = fmt.Println
+var p = fmt.Print
 
 func main() {
 
@@ -21,69 +20,101 @@ func main() {
 		CreatePaths: true,
 	}
 
-	fmt.Println("Attaching to: ", addr)
+	pl("Attaching to: ", addr)
 	listener, err := quic.ListenAddr(addr, utils.GenerateTLSConfig(), quicConfig)
 	utils.HandleError(err)
 
-	fmt.Println("Server started! Waiting for streams from client...")
+	pl("Server listening...")
 
 	sess, err := listener.Accept()
 	utils.HandleError(err)
-
-	fmt.Println("session created: ", sess.RemoteAddr())
-
 	stream, err := sess.AcceptStream()
 	utils.HandleError(err)
 
-	fmt.Println("stream created: ", stream.StreamID())
-
+	pl("Broadcasting incoming video stream...")
 	defer stream.Close()
-	fmt.Println("Connected to server, start receiving the file name and file size")
-	bufferFileName := make([]byte, 64)
-	bufferFileSize := make([]byte, 10)
-
-	stream.Read(bufferFileSize)
-	fileSize, _ := strconv.ParseInt(strings.Trim(string(bufferFileSize), ":"), 10, 64)
-
-	fmt.Println("file size received: ", fileSize)
-
-	stream.Read(bufferFileName)
-	fileName := strings.Trim(string(bufferFileName), ":")
-
-	fmt.Println("file name received: ", fileName)
-
-	newFile, err := os.Create("files_received/" + fileName)
-	utils.HandleError(err)
-
-	defer newFile.Close()
-	var receivedBytes int64
+	
+	time.Sleep(10*time.Millisecond)
 	start := time.Now()
 
-	for {
-		if (fileSize - receivedBytes) < config.BUFFERSIZE {
-			// fmt.Println("\nlast chunk of file.")
+	buffer := make([]byte, config.BUFFERSIZE)
 
-			recv, err := io.CopyN(newFile, stream, (fileSize - receivedBytes))
-			utils.HandleError(err)
+	var count = 0
 
-			stream.Read(make([]byte, (receivedBytes + config.BUFFERSIZE) - fileSize))
-			receivedBytes += recv
-			fmt.Printf("\033[2K\rReceived: %d / %d", receivedBytes, fileSize)
+	count = 0
+    // var frame gocv.Mat
+    var rows1 = -1
+    var rows2 = -1
+    var cols1 = -1
+    var cols2 = -1
+    var rows = -1
+    var cols = -1
 
-			break
+    var data []byte
+    var dataind = 0
+
+    // var i = 0
+    outer:
+	  for{
+		stream.Read(buffer)
+		// i++
+		// pl("Iteration : ", i)
+		for ind:=0;ind<len(buffer);{
+			if rows1 == -1{
+				pl(buffer[ind:ind+4])
+				rows1 = int(buffer[ind])
+				ind++
+			}
+			if rows2 == -1{
+				rows2 = int(buffer[ind])
+				ind++
+				rows = rows2 << 8 + rows1
+			}
+			if cols1 == -1{
+				cols1 = int(buffer[ind])
+				ind++
+			}
+			if cols2 == -1{
+				cols2 = int(buffer[ind])
+				ind++
+				cols = cols2 << 8 + cols1
+				pl("Rows ", rows, " Cols ", cols)
+				if rows!=0 && rows != 480{
+					break outer
+				}
+				data = make([]byte, 3*rows*cols)
+				
+			}
+
+			var limit = len(buffer) - ind
+			if limit+dataind>len(data){
+				limit = len(data)-dataind
+			}
+			if limit!=0{
+				copy(data[dataind:],buffer[ind:(ind+limit)])
+			}
+			dataind = dataind+limit
+			ind = ind+limit
+
+			if dataind==len(data){
+				count++
+				pl("Received frame, Total Count : ", count)
+				pl("last 10 bytes are ", data[len(data)-10:len(data)])
+				rows = 0
+				cols = 0
+				rows1 = -1
+				rows2 = -1
+				cols1 = -1
+				cols2 = -1
+				dataind = 0
+				// continue
+			}
 		}
-		_, err := io.CopyN(newFile, stream, config.BUFFERSIZE)
-		utils.HandleError(err)
+	  }
 
-		receivedBytes += config.BUFFERSIZE
-
-		fmt.Printf("\033[2K\rReceived: %d / %d", receivedBytes, fileSize)
-	}
 	elapsed := time.Since(start)
-	fmt.Println("\nTransfer took: ", elapsed)
-
+	pl("\n Ending video transmission, Duration: ", elapsed)
 	time.Sleep(2 * time.Second)
 	stream.Close()
 	stream.Close()
-	fmt.Println("\n\nReceived file completely!")
 }
