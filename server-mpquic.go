@@ -7,7 +7,7 @@ import (
 	utils "./utils"
 	config "./config"
 	quic "github.com/lucas-clemente/quic-go"
-	// "gocv.io/x/gocv"
+	"gocv.io/x/gocv"
 )
 
 const addr = "0.0.0.0:" + config.PORT
@@ -37,35 +37,37 @@ func main() {
 	time.Sleep(10*time.Millisecond)
 	start := time.Now()
 
-	buffer := make([]byte, config.BUFFERSIZE)
+	buffer := make([]byte, config.BUFFER_SIZE)
 
 
     // var frame gocv.Mat
     var rows = -1
     var cols = -1
-
+	
+	window := gocv.NewWindow("Output")
+  
     var dimens = make([]byte, 4)
     stream.Read(dimens)
-	pl("Reading dimensions ", dimens)
 	rows = int(dimens[1]) << 8 + int(dimens[0])
 	cols = int(dimens[3]) << 8 + int(dimens[2])
-	pl("Rows ", rows, " Cols ", cols)
+	pl("Video Dimensions : ", rows, " x ", cols)
 	var data = make([]byte, 3*rows*cols)
     var dataind = 0
 
 	var count = 0
 	for ;count<config.MAX_FRAMES;{
-		var limit = config.BUFFERSIZE
+		var limit = config.BUFFER_SIZE
 		if limit+dataind >= len(data){
 			limit = len(data)-dataind
 			var temp = make([]byte, limit)
 			stream.Read(temp)
 			copy(data[dataind:],temp)
 			count++
-			pl("\n\nReceived frame ", count, "  size of last buffer ", limit)
-			pl("first 10 bytes are ", data[:10])
-			pl("last 10 bytes are ", data[len(data)-10:])
 			dataind = 0
+			img,err := gocv.NewMatFromBytes(rows,cols,gocv.MatTypeCV8UC3,data)
+			utils.HandleError(err)
+			window.IMShow(img)
+			window.WaitKey(1)
 		} else{
 			stream.Read(buffer)
 			copy(data[dataind:],buffer)
@@ -74,8 +76,8 @@ func main() {
 	}
 
 	elapsed := time.Since(start)
-	pl("\n Ending video transmission, Duration: ", elapsed)
-	time.Sleep(2 * time.Second)
+	pl("\nEnding video transmission, Duration: ", elapsed, " Frames Captured ", count)
 	stream.Close()
 	stream.Close()
+	pl("\n\nThank you!")
 }

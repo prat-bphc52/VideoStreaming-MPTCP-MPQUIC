@@ -1,10 +1,9 @@
 package config
 
 // BUFFERSIZE is the size of max packet size
-const BUFFERSIZE = 1024
-const BUFFERSEND = 1024
+const BUFFER_SIZE = 1024
 
-const MAX_FRAMES = 10
+const MAX_FRAMES = 50
 
 // PORT the default port for communication
 const PORT = "6000"

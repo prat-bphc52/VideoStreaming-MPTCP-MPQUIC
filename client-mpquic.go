@@ -12,7 +12,7 @@ import (
 	"gocv.io/x/gocv"
 )
 
-const addr = "127.0.0.1:"+config.PORT
+const addr = "10.0.0.2:"+config.PORT
 var pl = fmt.Println
 var p = fmt.Print
 
@@ -40,7 +40,7 @@ func main() {
 
 	webcam.Read(&img)
 
-	pl("Rows ", img.Rows(), " Cols ", img.Cols())
+	pl("Video Dimensions : ", img.Rows(), " x ", img.Cols())
     var dimens = make([]byte, 4)
 	var bs = make([]byte, 2)
 	binary.LittleEndian.PutUint16(bs, uint16(img.Rows()))
@@ -48,17 +48,13 @@ func main() {
 	binary.LittleEndian.PutUint16(bs, uint16(img.Cols()))
 	copy(dimens[2:],bs)
 	stream.Write(dimens)
-	pl("Sending dimensions ", dimens)
 
-
-	for i:=1;i<=config.MAX_FRAMES;i++{
+	var count = 1
+	for ;count<=config.MAX_FRAMES;count++{
 		webcam.Read(&img)
-		pl("\n\nSending frame ", i)
 		var b = img.ToBytes()
-		pl("first 10 bytes are ", b[:10])
-		pl("last 10 bytes are ", b[len(b)-10:])
 		for ind:=0;ind<len(b);{
-			var end = ind+config.BUFFERSEND
+			var end = ind+config.BUFFER_SIZE
 			if end>len(b){
 				end = len(b)
 			}
@@ -71,10 +67,9 @@ func main() {
 	webcam.Close()
 
 	elapsed := time.Since(start)
-	pl("\nEnding Video Stream, Duration : ", elapsed)
+	pl("\nEnding Video Stream, Duration : ", elapsed, " Frames Sent ", count)
 
 	stream.Close()
 	stream.Close()
-	time.Sleep(2 * time.Second)
 	pl("\n\nThank you!")
 }
